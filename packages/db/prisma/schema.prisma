@@ -1,0 +1,59 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated"
+}
+
+model users {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+  documents     documents[]
+  revisions     document_revisions[]
+  shares        document_shares[]
+}
+
+model documents {
+  id          String   @id @default(uuid())
+  owner_id    String
+  owner       users    @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  title       String
+  content     String   @default("")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+  is_deleted  Boolean  @default(false)
+  revisions   document_revisions[]
+  shares      document_shares[]
+}
+
+model document_revisions {
+  id          String   @id @default(uuid())
+  document_id String
+  editor_id   String?
+  content     String
+  created_at  DateTime @default(now())
+  document    documents @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  editor      users?    @relation(fields: [editor_id], references: [id], onDelete: SetNull)
+}
+
+enum user_permission {
+  read
+  edit
+}
+
+model document_shares {
+  id          String           @id @default(uuid())
+  document_id String
+  user_id     String
+  permission  user_permission
+  created_at  DateTime @default(now())
+  document    documents @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  user        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([document_id, user_id])
+}
